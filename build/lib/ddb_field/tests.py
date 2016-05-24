@@ -33,7 +33,7 @@ class FieldTests(unittest.TestCase):
 
 class FieldTests(FieldTests):
     def test_comma_formatter(self):
-        from .Field import comma_me
+        from .ddb_field import comma_me
         num = comma_me(10000000000)
         self.assertTrue(num == '10,000,000,000')
 
@@ -41,7 +41,7 @@ class FieldTests(FieldTests):
         self.assertTrue(num == '100')
 
     def test_default_field(self):
-        from ..lib.field import Field
+        from .ddb_field import Field
 
         expected_results = {
             'winter is coming.': [
@@ -60,7 +60,7 @@ class FieldTests(FieldTests):
         self._execute_expectations(Field, expected_results)
 
     def test_field_properties(self):
-        from ..lib.field import Field as FieldClass
+        from .ddb_field import Field as FieldClass
 
         Field = FieldClass(
             {}, {'rawValue': 'test', 'foo': 'bananas', 'bar': 'ponies'})
@@ -69,7 +69,7 @@ class FieldTests(FieldTests):
         self.assertTrue('bar' in Field.display)
 
     def test_textline(self):
-        from ..lib.field import TextLine as Field
+        from .ddb_field import TextLine as Field
 
         expected_results = {
             'Winter is coming.': [
@@ -109,7 +109,7 @@ class FieldTests(FieldTests):
         self._execute_expectations(Field, expected_results)
 
     def test_float_ratio(self):
-        from ..lib.field import FloatRatio as Field
+        from .ddb_field import FloatRatio as Field
 
         expected_results = {
             '45:1': [
@@ -130,7 +130,7 @@ class FieldTests(FieldTests):
         self._execute_expectations(Field, expected_results)
 
     def test_usd_int(self):
-        from ..lib.field import USDInt as Field
+        from .ddb_field import USDInt as Field
         expected_results = {
             '$45': [
                 ({'rawValue': '45'}, {}),
@@ -147,7 +147,7 @@ class FieldTests(FieldTests):
         self._execute_expectations(Field, expected_results)
 
     def test_usd_float(self):
-        from ..lib.field import USDFloat as Field
+        from .ddb_field import USDFloat as Field
 
         expected_results = {
             '$45.00': [
@@ -169,7 +169,7 @@ class FieldTests(FieldTests):
         self._execute_expectations(Field, expected_results)
 
     def test_standard_percentage(self):
-        from ..lib.field import STDPercentage as Field
+        from .ddb_field import STDPercentage as Field
 
         expected_results = {
             '100%': [
@@ -192,7 +192,7 @@ class FieldTests(FieldTests):
         self._execute_expectations(Field, expected_results)
 
     def test_raw_percentage(self):
-        from ..lib.field import RawPercentage as Field
+        from .ddb_field import RawPercentage as Field
 
         expected_results = {
             '100%': [
@@ -209,13 +209,17 @@ class FieldTests(FieldTests):
                 ({'rawValue': None}, {'precision': 0}),
                 ({'rawValue': None}, {'precision': 2}),
             ],
+            'N/A': [
+                ({'rawValue': 0}, {'precision': 0}),
+                ({'rawValue': '0'}, {'precision': 2}),
+            ],
 
         }
 
         self._execute_expectations(Field, expected_results)
 
     def test_oracle_yesno(self):
-        from ..lib.field import OracleYesNo as Field
+        from .ddb_field import OracleYesNo as Field
 
         expected_results = {
             'Yes': [
@@ -238,7 +242,7 @@ class FieldTests(FieldTests):
         self._execute_expectations(Field, expected_results)
 
     def test_yesno(self):
-        from ..lib.field import YesNo as Field
+        from .ddb_field import YesNo as Field
 
         expected_results = {
             'Yes': [
@@ -263,7 +267,7 @@ class FieldTests(FieldTests):
         self._execute_expectations(Field, expected_results)
 
     def test_delimited_field(self):
-        from ..lib.field import DelimitedField as Field
+        from .ddb_field import DelimitedField as Field
 
         expected_results = {
             '[foo; baz; bat]': [
@@ -282,7 +286,7 @@ class FieldTests(FieldTests):
         self._execute_expectations(Field, expected_results)
 
     def test_ranking_int(self):
-        from ..lib.field import RankingInt as Field
+        from .ddb_field import RankingInt as Field
 
         expected_results = {
             '1': [
@@ -298,7 +302,7 @@ class FieldTests(FieldTests):
         self._execute_expectations(Field, expected_results)
 
     def test_int(self):
-        from ..lib.field import Int as Field
+        from .ddb_field import Int as Field
 
         expected_results = {
             '1': [
@@ -324,7 +328,7 @@ class FieldTests(FieldTests):
         self._execute_expectations(Field, expected_results)
 
     def test_yearless_datetime(self):
-        from ..lib.field import YearlessDatetime as Field
+        from .ddb_field import YearlessDatetime as Field
 
         expected_results = {
             'September 10': [
@@ -345,7 +349,7 @@ class FieldTests(FieldTests):
         self._execute_expectations(Field, expected_results)
 
     def test_phone(self):
-        from ..lib.field import Phone as Field
+        from .ddb_field import Phone as Field
 
         expected_results = {
             '(800) 555-4444': [
@@ -366,7 +370,7 @@ class FieldTests(FieldTests):
         self._execute_expectations(Field, expected_results)
 
     def test_float(self):
-        from ..lib.field import USNFloat as Field
+        from .ddb_field import USNFloat as Field
 
         expected_results = {
             '1': [

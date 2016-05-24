@@ -209,6 +209,10 @@ class FieldTests(FieldTests):
                 ({'rawValue': None}, {'precision': 0}),
                 ({'rawValue': None}, {'precision': 2}),
             ],
+            'N/A': [
+                ({'rawValue': 0}, {'precision': 0}),
+                ({'rawValue': '0'}, {'precision': 2}),
+            ],
 
         }
 
