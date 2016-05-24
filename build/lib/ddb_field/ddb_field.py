@@ -143,12 +143,11 @@ class STDPercentage(Field):
                 try:
                     self.value = float(self.value)
                 except Exception:
-                    self.value = self.value
+                    self.value = 'N/A'
                     return
             if self.value == 0:
-                import pdb
-                pdb.set_trace()
-                return 'N/A'
+                self.value = 'N/A'
+                return
             if self.field_metadata['precision'] == 0 or self.field_metadata['precision'] is None:
                 self.value = math.trunc(round(self.value))
             elif self.field_metadata['precision'] is not None:
@@ -164,7 +163,8 @@ class RawPercentage(Field):
         if self.value:
             self.value = float(self.value) * 100
             if self.value == 0:
-                return 'N/A'
+                self.value = 'N/A'
+                return
             if self.field_metadata['precision'] == 0 or self.field_metadata['precision'] is None:
                 self.value = math.trunc(round(self.value))
             elif self.field_metadata['precision'] is not None:
