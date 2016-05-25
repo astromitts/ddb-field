@@ -348,7 +348,8 @@ class NumericTypeTests(FieldTestBase):
             ],
             'N/A': [
                 ({'rawValue': None}, {}),
-                ({'rawValue': None}, {}),
+                ({'rawValue': ''}, {}),
+                ({'rawValue': 'foo'}, {}),
             ],
 
         }

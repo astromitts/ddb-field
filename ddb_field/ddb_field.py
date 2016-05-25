@@ -82,7 +82,10 @@ class Field(object):
     def _parse_number(self, value, precision=0, comma=True):
         if value and str(value).lower() not in ['none', 'n/a']:
             strval = str(value).replace(',', '')
-            numval = float(strval)
+            try:
+                numval = float(strval)
+            except ValueError:
+                return None, None
             # force round up on .*5 (python does not do this out of the box)
             if '.' in strval:
                 parts = strval.split('.')
@@ -159,7 +162,11 @@ class FloatRatio(Field):
         if self.value:
             self.value, self.raw_value = self._parse_number(
                 self.value, self.precision)
-            self.value = str(self.value) + ':1'
+            if self.value:
+                self.value = str(self.value) + ':1'
+                self.raw_value = None
+            else:
+                self.value = 'N/A'
         else:
             self.value = 'N/A'
 
@@ -173,9 +180,15 @@ class USDFloat(Field):
         if self.value:
             self.value, self.raw_value = self._parse_number(
                 self.value, self.precision)
-            self.value = '$%s' % self.value
+            if self.value:
+                self.value = '$%s' % self.value
+                self.raw_value = None
+            else:
+                self.value = 'N/A'
+                self.raw_value = None
         else:
             self.value = 'N/A'
+            self.raw_value = None
 
 
 class USDInt(Field):
@@ -187,7 +200,12 @@ class USDInt(Field):
         if self.value:
             self.value, self.raw_value = self._parse_number(
                 self.value, self.precision)
-            self.value = '$%s' % self.value
+            if self.value:
+                self.value = '$%s' % self.value
+                self.raw_value = None
+            else:
+                self.value = 'N/A'
+                self.raw_value = None
         else:
             self.value = 'N/A'
 
