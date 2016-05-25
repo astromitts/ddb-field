@@ -44,14 +44,7 @@ class Field(object):
 
     @classmethod
     def set_raw(self):
-        if not self.raw_value:
-            if self.value is None or self.value == 'None':
-                self.value = ''
-                self.raw_value = None
-            elif self.value == 'N/A':
-                self.raw_value = None
-            else:
-                self.raw_value = self.value
+        pass
 
     @classmethod
     def _round_decimal(self, decimal, whole):
@@ -116,29 +109,18 @@ class Field(object):
             return value, None
 
 
-class TextLine(Field):
+class Int(Field):
+
     @classmethod
     def convert(self):
-        char_map = {
-            u"\u2018": "'",
-            u"\u2019": "'",
-            u"\u201c": "\"",
-            u"\u201d": "\"",
-        }
+        self.sort_as = "Integer"
+        if not self.value:
+            self.value =  'N/A'
+            return
+        self.precision = 0
         if self.value:
-            self.value = str(self.value)
-            for bad_char, good_char in char_map.items():
-                self.value = self.value.replace(bad_char, good_char)
-            if self.case == 'upper':
-                self.value = self.value.upper()
-
-            elif self.case == 'title':
-                self.value = self.value.title()
-
-            else:
-                self.value = self.value.capitalize()
-        else:
-            self.value = 'N/A'
+            self.value, self.raw_value = self._parse_number(
+                self.value, self.precision)
 
 
 class USNFloat(Field):
@@ -164,9 +146,9 @@ class FloatRatio(Field):
                 self.value, self.precision)
             if self.value:
                 self.value = str(self.value) + ':1'
-                self.raw_value = None
             else:
                 self.value = 'N/A'
+                self.raw_value = None
         else:
             self.value = 'N/A'
 
@@ -182,7 +164,6 @@ class USDFloat(Field):
                 self.value, self.precision)
             if self.value:
                 self.value = '$%s' % self.value
-                self.raw_value = None
             else:
                 self.value = 'N/A'
                 self.raw_value = None
@@ -202,7 +183,6 @@ class USDInt(Field):
                 self.value, self.precision)
             if self.value:
                 self.value = '$%s' % self.value
-                self.raw_value = None
             else:
                 self.value = 'N/A'
                 self.raw_value = None
@@ -215,10 +195,15 @@ class STDPercentage(Field):
     @classmethod
     def convert(self):
         self.sort_as = "Float"
+        self.precision = self.precision or 0
         if self.value:
             self.value, self.raw_value = self._parse_number(
                 self.value, self.precision)
-            self.value = self.value + '%'
+            if self.value:
+                self.value = self.value + '%'
+            else:
+                self.value = 'N/A'
+                self.raw_value = None
         else:
             self.value = 'N/A'
 
@@ -228,6 +213,7 @@ class RawPercentage(Field):
     @classmethod
     def convert(self):
         self.sort_as = "Float"
+        self.precision = self.precision or 0
         if self.value:
             self.value = float(self.value) * 100
             if self.value == 0:
@@ -235,9 +221,43 @@ class RawPercentage(Field):
                 return
             self.value, self.raw_value = self._parse_number(
                 self.value, self.precision)
-            self.value = str(self.value) + '%'
+            if self.value:
+                self.value = self.value + '%'
+            else:
+                self.value = 'N/A'
+                self.raw_value = None
         else:
             self.value = 'N/A'
+
+
+class TextLine(Field):
+    @classmethod
+    def convert(self):
+        char_map = {
+            u"\u2018": "'",
+            u"\u2019": "'",
+            u"\u201c": "\"",
+            u"\u201d": "\"",
+        }
+        if self.value:
+            self.value = str(self.value)
+            for bad_char, good_char in char_map.items():
+                self.value = self.value.replace(bad_char, good_char)
+            if self.case == 'upper':
+                self.value = self.value.upper()
+
+            elif self.case == 'title':
+                self.value = self.value.title()
+
+            else:
+                self.value = self.value.capitalize()
+        else:
+            self.value = 'N/A'
+
+    @classmethod
+    def set_raw(self):
+        if self.value and self.value != 'N/A':
+            self.raw_value = self.value
 
 
 class YesNo(Field):
@@ -254,6 +274,11 @@ class YesNo(Field):
         else:
             self.value = 'N/A'
 
+    @classmethod
+    def set_raw(self):
+        if self.value and self.value != 'N/A':
+            self.raw_value = self.value
+
 
 class OracleYesNo(Field):
     ''' Oracle Yes/No is different from regular Yes/No because an Oracle
@@ -268,6 +293,11 @@ class OracleYesNo(Field):
                 self.value = 'No'
         else:
             self.value = 'No'
+
+    @classmethod
+    def set_raw(self):
+        if self.value and self.value != 'N/A':
+            self.raw_value = self.value
 
 
 class YearlessDatetime(Field):
@@ -296,6 +326,11 @@ class YearlessDatetime(Field):
         else:
             self.value = 'N/A'
 
+    @classmethod
+    def set_raw(self):
+        if self.value and self.value != 'N/A':
+            self.raw_value = self.value
+
 
 class Phone(Field):
     @classmethod
@@ -310,7 +345,12 @@ class Phone(Field):
             self.value = '(%s) %s-%s%s' % (  # noqa
                 self.value[:3], self.value[3:6], self.value[6:10], extension)
         else:
-            self.value = None
+            self.value = 'N/A'
+
+    @classmethod
+    def set_raw(self):
+        if self.value and self.value != 'N/A':
+            self.raw_value = self.value
 
 
 class RankingInt(Field):
@@ -322,20 +362,6 @@ class RankingInt(Field):
             self.value = '%s' % self.value
         else:
             self.value = ''
-
-
-class Int(Field):
-
-    @classmethod
-    def convert(self):
-        self.sort_as = "Integer"
-        if not self.value:
-            self.value =  'N/A'
-            return
-        self.precision = 0
-        if self.value:
-            self.value, self.raw_value = self._parse_number(
-                self.value, self.precision)
 
 
 class DelimitedField(Field):
@@ -356,6 +382,12 @@ class DelimitedField(Field):
                 self.value = [p.strip() for p in parts if p.strip() != '']
         else:
             self.value = 'N/A'
+
+    @classmethod
+    def set_raw(self):
+        if self.value and self.value != 'N/A':
+            self.raw_value = self.value
+
 
 class DDBField(object):
 

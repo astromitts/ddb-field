@@ -237,7 +237,7 @@ class TextTypeTests(FieldTestBase):
             '456': [
                 ({'rawValue': '456'}, {}),
             ],
-            '': [
+            'N/A': [
                 ({'rawValue': None}, {}),
             ],
 
@@ -440,5 +440,17 @@ class RawValuesTests(FieldTestBase):
 
         field = DDBField('2,100', 'float_ratio')
         self.assertEquals(field.Field.raw_value, 2100)
+
+        field = DDBField('1', 'usd_int')
+        self.assertEquals(field.Field.raw_value, 1)
+        self.assertEquals(field.Field.value, '$1')
+
+        field = DDBField('1', 'std_percentage')
+        self.assertEquals(field.Field.raw_value, 1)
+        self.assertEquals(field.Field.value, '1%')
+
+        field = DDBField('1', 'raw_percentage')
+        self.assertEquals(field.Field.raw_value, 100)
+        self.assertEquals(field.Field.value, '100%')
 
 
