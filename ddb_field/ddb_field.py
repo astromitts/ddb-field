@@ -22,6 +22,7 @@ class Field(object):
         self.vocabulary = {}
         self.field_metadata = field
         self.convert()
+        self.sort_as = "Text"
         # TODO: Re-implement vocabulary
         # if self.field_metadata['displayName'] in vocabulary:
         #     self.vocabulary = vocabulary[self.field_metadata['displayName']]
@@ -80,6 +81,8 @@ class TextLine(Field):
 
 
 class USNFloat(Field):
+    sort_as = "Float"
+
     @classmethod
     def convert(self):
         if self.value:
@@ -98,6 +101,8 @@ class USNFloat(Field):
 
 
 class FloatRatio(Field):
+    sort_as = "Float"
+
     @classmethod
     def convert(self):
         if self.value:
@@ -113,6 +118,8 @@ class FloatRatio(Field):
 
 
 class USDFloat(Field):
+    sort_as = "Float"
+
     @classmethod
     def convert(self):
         if self.value:
@@ -126,6 +133,8 @@ class USDFloat(Field):
 
 
 class USDInt(Field):
+    sort_as = "Integer"
+
     @classmethod
     def convert(self):
         if self.value:
@@ -136,6 +145,8 @@ class USDInt(Field):
 
 
 class STDPercentage(Field):
+    sort_as = "Float"
+
     @classmethod
     def convert(self):
         if self.value:
@@ -158,6 +169,8 @@ class STDPercentage(Field):
 
 
 class RawPercentage(Field):
+    sort_as = "Float"
+
     @classmethod
     def convert(self):
         if self.value:
@@ -248,6 +261,8 @@ class Phone(Field):
 
 
 class RankingInt(Field):
+    sort_as = "Integer"
+
     @classmethod
     def convert(self):
         if self.value:
@@ -257,6 +272,8 @@ class RankingInt(Field):
 
 
 class Int(Field):
+    sort_as = "Integer"
+
     @classmethod
     def convert(self):
         if not self.value:

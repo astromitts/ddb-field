@@ -70,6 +70,7 @@ class FieldTests(FieldTests):
 
     def test_textline(self):
         from .ddb_field import TextLine as Field
+        self.assertEquals(Field.sort_as, "Text")
 
         expected_results = {
             'Winter is coming.': [
@@ -110,6 +111,7 @@ class FieldTests(FieldTests):
 
     def test_float_ratio(self):
         from .ddb_field import FloatRatio as Field
+        self.assertEquals(Field.sort_as, "Float")
 
         expected_results = {
             '45:1': [
@@ -131,6 +133,7 @@ class FieldTests(FieldTests):
 
     def test_usd_int(self):
         from .ddb_field import USDInt as Field
+        self.assertEquals(Field.sort_as, "Integer")
         expected_results = {
             '$45': [
                 ({'rawValue': '45'}, {}),
@@ -148,6 +151,7 @@ class FieldTests(FieldTests):
 
     def test_usd_float(self):
         from .ddb_field import USDFloat as Field
+        self.assertEquals(Field.sort_as, "Float")
 
         expected_results = {
             '$45.00': [
@@ -170,6 +174,7 @@ class FieldTests(FieldTests):
 
     def test_standard_percentage(self):
         from .ddb_field import STDPercentage as Field
+        self.assertEquals(Field.sort_as, "Float")
 
         expected_results = {
             '100%': [
@@ -193,6 +198,7 @@ class FieldTests(FieldTests):
 
     def test_raw_percentage(self):
         from .ddb_field import RawPercentage as Field
+        self.assertEquals(Field.sort_as, "Float")
 
         expected_results = {
             '100%': [
@@ -220,6 +226,7 @@ class FieldTests(FieldTests):
 
     def test_oracle_yesno(self):
         from .ddb_field import OracleYesNo as Field
+        self.assertEquals(Field.sort_as, "Text")
 
         expected_results = {
             'Yes': [
@@ -243,6 +250,7 @@ class FieldTests(FieldTests):
 
     def test_yesno(self):
         from .ddb_field import YesNo as Field
+        self.assertEquals(Field.sort_as, "Text")
 
         expected_results = {
             'Yes': [
@@ -268,6 +276,7 @@ class FieldTests(FieldTests):
 
     def test_delimited_field(self):
         from .ddb_field import DelimitedField as Field
+        self.assertEquals(Field.sort_as, "Text")
 
         expected_results = {
             '[foo; baz; bat]': [
@@ -287,6 +296,7 @@ class FieldTests(FieldTests):
 
     def test_ranking_int(self):
         from .ddb_field import RankingInt as Field
+        self.assertEquals(Field.sort_as, "Integer")
 
         expected_results = {
             '1': [
@@ -303,6 +313,7 @@ class FieldTests(FieldTests):
 
     def test_int(self):
         from .ddb_field import Int as Field
+        self.assertEquals(Field.sort_as, "Integer")
 
         expected_results = {
             '1': [
@@ -329,6 +340,7 @@ class FieldTests(FieldTests):
 
     def test_yearless_datetime(self):
         from .ddb_field import YearlessDatetime as Field
+        self.assertEquals(Field.sort_as, "Text")
 
         expected_results = {
             'September 10': [
@@ -350,6 +362,7 @@ class FieldTests(FieldTests):
 
     def test_phone(self):
         from .ddb_field import Phone as Field
+        self.assertEquals(Field.sort_as, "Text")
 
         expected_results = {
             '(800) 555-4444': [
@@ -371,6 +384,7 @@ class FieldTests(FieldTests):
 
     def test_float(self):
         from .ddb_field import USNFloat as Field
+        self.assertEquals(Field.sort_as, "Float")
 
         expected_results = {
             '1': [
