@@ -15,28 +15,23 @@ def comma_me(amount):
 
 class Field(object):
     @classmethod
-    def __init__(self, field, field_data, vocabulary={}):
-        #import pdb
-        #pdb.set_trace()
-        self.value = field_data['rawValue']
+    def __init__(self, raw_value, precision=None, case=None, delimiter=';',
+                 vocabulary={}):
+        self.value = raw_value
         self.vocabulary = {}
-        self.field_metadata = field
-        self.convert()
+        self.precision=precision
         self.sort_as = "Text"
+        self.case = case
+        self.delimiter = delimiter
+        self.convert()
         # TODO: Re-implement vocabulary
         # if self.field_metadata['displayName'] in vocabulary:
         #     self.vocabulary = vocabulary[self.field_metadata['displayName']]
         # if self.value in self.vocabulary:
         #     self.value = self.vocabulary[self.value]
-        self.display = {
-            'value': self.value
-        }
+
         if self.value is None or self.value == 'None':
             self.value = ''
-
-        for key, val in field_data.items():
-            if key != 'value':
-                self.display[key] = val
 
     @classmethod
     def convert(self):
@@ -57,21 +52,14 @@ class TextLine(Field):
             u"\u201c": "\"",
             u"\u201d": "\"",
         }
-        caps = ['state', 'association']
-        titles = [
-            'city',
-            'address',
-            'displayName',
-        ]
         if self.value:
             self.value = str(self.value)
             for bad_char, good_char in char_map.items():
                 self.value = self.value.replace(bad_char, good_char)
-
-            if self.field_metadata['displayName'] in caps:
+            if self.case == 'upper':
                 self.value = self.value.upper()
 
-            elif self.field_metadata['displayName'] in titles:
+            elif self.case == 'title':
                 self.value = self.value.title()
 
             else:
@@ -86,14 +74,14 @@ class USNFloat(Field):
     @classmethod
     def convert(self):
         if self.value:
-            if self.field_metadata['precision'] == 0:
+            if self.precision == 0:
                 self.value = math.trunc(float(self.value))
-            elif self.field_metadata['precision'] is not None:
+            elif self.precision is not None:
                 self.value = round(
-                    float(self.value), self.field_metadata['precision'])
+                    float(self.value), self.precision)
                 parts = str(self.value).split('.')
                 dollars = parts[0]
-                cents = parts[1].rjust( self.field_metadata['precision'], '0')
+                cents = parts[1].rjust( self.precision, '0')
                 self.value = dollars + '.' + cents
             self.value = str(self.value)
         else:
@@ -107,11 +95,11 @@ class FloatRatio(Field):
     def convert(self):
         if self.value:
             self.value = float(self.value)
-            if self.field_metadata['precision'] == 0:
+            if self.precision == 0:
                 self.value = math.trunc(self.value)
-            elif self.field_metadata['precision'] is not None:
+            elif self.precision is not None:
                 self.value = round(
-                    self.value, self.field_metadata['precision'])
+                    self.value, self.precision)
             self.value = str(self.value) + ':1'
         else:
             self.value = 'N/A'
@@ -159,10 +147,10 @@ class STDPercentage(Field):
             if self.value == 0:
                 self.value = 'N/A'
                 return
-            if self.field_metadata['precision'] == 0 or self.field_metadata['precision'] is None:
+            if self.precision == 0 or self.precision is None:
                 self.value = math.trunc(round(self.value))
-            elif self.field_metadata['precision'] is not None:
-                self.value = round(self.value, self.field_metadata['precision'])
+            elif self.precision is not None:
+                self.value = round(self.value, self.precision)
             self.value = str(self.value) + '%'
         else:
             self.value = 'N/A'
@@ -178,10 +166,10 @@ class RawPercentage(Field):
             if self.value == 0:
                 self.value = 'N/A'
                 return
-            if self.field_metadata['precision'] == 0 or self.field_metadata['precision'] is None:
+            if self.precision == 0 or self.precision is None:
                 self.value = math.trunc(round(self.value))
-            elif self.field_metadata['precision'] is not None:
-                self.value = round(self.value, self.field_metadata['precision'])
+            elif self.precision is not None:
+                self.value = round(self.value, self.precision)
             self.value = str(self.value) + '%'
         else:
             self.value = 'N/A'
@@ -290,7 +278,7 @@ class DelimitedField(Field):
     def convert(self):
         if self.value:
             if ' -- ' in self.value:
-                parts = self.value.split(self.field_metadata['delimiter'])
+                parts = self.value.split(self.delimiter)
                 self.value = []
                 for part in parts:
                     string_parts = part.split('--')
@@ -299,7 +287,45 @@ class DelimitedField(Field):
                             (string_parts[0].strip(), string_parts[1].strip())
                         )
             else:
-                parts = self.value.split(self.field_metadata['delimiter'])
+                parts = self.value.split(self.delimiter)
                 self.value = [p.strip() for p in parts if p.strip() != '']
         else:
             self.value = 'N/A'
+
+class DDBField(object):
+
+    @classmethod
+    def __init__(self, value, field_type=None, precision=None,
+                 case=None, delimiter=';',):
+        _default_field_model = Field
+        _field_map = {
+            'float': USNFloat,
+            'float_ratio': FloatRatio,
+            'textline': TextLine,
+            'usd_float': USDFloat,
+            'usd_int': USDInt,
+            'std_percentage': STDPercentage,
+            'raw_percentage': RawPercentage,
+            'yes_no': YesNo,
+            'oracleyes_no': OracleYesNo,
+            'yearless_datetime': YearlessDatetime,
+            'phone': Phone,
+            'ranking_int': RankingInt,
+            'ranking_string': RankingInt,
+            'int': Int,
+            'delimited_field': DelimitedField,
+        }
+
+        if field_type and field_type in _field_map:
+            self.Field = _field_map[field_type]
+        else:
+            self.Field = _default_field_model
+
+        self.field_type = field_type
+
+        self.Field(
+            value,
+            precision=precision,
+            case=case,
+            delimiter=delimiter
+        )

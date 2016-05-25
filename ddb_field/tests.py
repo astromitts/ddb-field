@@ -1,7 +1,8 @@
 import unittest
+from .ddb_field import DDBField
 
 
-class FieldTests(unittest.TestCase):
+class FieldTestBase(unittest.TestCase):
     ''' Base class for tests that do not require database connectvity
     '''
     def setUp(self):
@@ -10,28 +11,50 @@ class FieldTests(unittest.TestCase):
     def tearDown(self):
         pass
 
-    def _execute_expectations(self, FieldClass, expectations):
+    def _execute_expectations(self, field_type=None, expectations={}):
         for result, inputs in expectations.items():
             if result.startswith('[') and result.endswith(']'):
                 result = result.replace('[', '').replace(']', '').split(';')
                 result = [r.strip() for r in result]
+                print ('result: %s' % result)
             elif  result.startswith('{') and result.endswith('}'):
-                result_list = result.replace('{', '').replace('}', '').split(';')
+                result_list = result.replace('{', '').replace(
+                    '}', '').split(';')
                 result = []
                 for part in result_list:
                     parts = part.split(':')
                     result.append((parts[0].strip(), parts[1].strip()))
-            if type(inputs) == list:
-                for _inputs in inputs:
-                    Field = FieldClass(_inputs[1], _inputs[0])
-                    self.assertEquals(Field.value, result)
-            else:
-                Field = FieldClass(inputs[1], inputs[0])
-                self.assertEquals(Field.value, result)
+                print ('result: %s' % result)
+
+            for _inputs in inputs:
+                print("testing %s for %s" % (_inputs[0]['rawValue'], result))
+                if _inputs[1] and 'precision' in _inputs[1]:
+                    precision = _inputs[1]['precision']
+                else:
+                    precision = None
+
+                if _inputs[1] and 'case' in _inputs[1]:
+                    case = _inputs[1]['case']
+                else:
+                    case = None
+
+                if _inputs[1] and 'delimiter' in _inputs[1]:
+                    delimiter = _inputs[1]['delimiter']
+                else:
+                    delimiter = ';'
+
+                field = DDBField(
+                    value=_inputs[0]['rawValue'],
+                    field_type=field_type,
+                    precision=precision,
+                    case=case,
+                    delimiter=delimiter,
+                )
+                self.assertEquals(field.Field.value, result)
 
 
 
-class FieldTests(FieldTests):
+class FieldTests(FieldTestBase):
     def test_comma_formatter(self):
         from .ddb_field import comma_me
         num = comma_me(10000000000)
@@ -41,7 +64,6 @@ class FieldTests(FieldTests):
         self.assertTrue(num == '100')
 
     def test_default_field(self):
-        from .ddb_field import Field
 
         expected_results = {
             'winter is coming.': [
@@ -57,61 +79,49 @@ class FieldTests(FieldTests):
 
         }
 
-        self._execute_expectations(Field, expected_results)
+        self._execute_expectations(expectations=expected_results)
 
-    def test_field_properties(self):
-        from .ddb_field import Field as FieldClass
-
-        Field = FieldClass(
-            {}, {'rawValue': 'test', 'foo': 'bananas', 'bar': 'ponies'})
-
-        self.assertTrue('foo' in Field.display)
-        self.assertTrue('bar' in Field.display)
 
     def test_textline(self):
-        from .ddb_field import TextLine as Field
-        self.assertEquals(Field.sort_as, "Text")
 
         expected_results = {
             'Winter is coming.': [
-                ({'rawValue': 'winter is coming.'}, {'displayName': 'test'}),
-                ({'rawValue': 'WINTER IS COMING.'}, {'displayName': 'test'}),
+                ({'rawValue': 'winter is coming.'}, {}),
+                ({'rawValue': 'WINTER IS COMING.'}, {}),
             ],
             'Winter Is Coming.': [
-                ({'rawValue': 'winter is coming.'}, {'displayName': 'address'}),
-                ({'rawValue': 'WINTER IS COMING.'}, {'displayName': 'address'}),
+                ({'rawValue': 'winter is coming.'}, {'case': 'title'}),
+                ({'rawValue': 'WINTER IS COMING.'}, {'case': 'title'}),
             ],
             'CA': [
-                ({'rawValue': 'ca'}, {'displayName': 'state'}),
-                ({'rawValue': 'CA'}, {'displayName': 'state'}),
+                ({'rawValue': 'ca'}, {'case': 'upper'}),
+                ({'rawValue': 'CA'}, {'case': 'upper'}),
             ],
             'NCAA II': [
-                ({'rawValue': 'ncaa ii'}, {'displayName': 'association'}),
-                ({'rawValue': 'ncaa II'}, {'displayName': 'association'}),
+                ({'rawValue': 'ncaa ii'}, {'case': 'upper'}),
+                ({'rawValue': 'ncaa II'}, {'case': 'upper'}),
             ],
             '2000': [
-                ({'rawValue': '2000'}, {'displayName': 'test'}),
-                ({'rawValue': 2000}, {'displayName': 'test'}),
+                ({'rawValue': '2000'}, {}),
+                ({'rawValue': 2000}, {}),
             ],
             '"hello"': [
-                ({'rawValue': '\u201dhello\u201d'}, {'displayName': 'test'}),
-                ({'rawValue': '\u201chello\u201c'}, {'displayName': 'test'}),
+                ({'rawValue': '\u201dhello\u201d'}, {}),
+                ({'rawValue': '\u201chello\u201c'}, {}),
             ],
             "'hello'": [
-                ({'rawValue': '\u2019hello\u2019'}, {'displayName': 'test'}),
-                ({'rawValue': '\u2018hello\u2018'}, {'displayName': 'test'}),
+                ({'rawValue': '\u2019hello\u2019'}, {}),
+                ({'rawValue': '\u2018hello\u2018'}, {}),
             ],
             'N/A': [
-                ({'rawValue': None}, {'displayName': 'test'}),
+                ({'rawValue': None}, {}),
             ],
 
         }
 
-        self._execute_expectations(Field, expected_results)
+        self._execute_expectations('textline', expected_results)
 
     def test_float_ratio(self):
-        from .ddb_field import FloatRatio as Field
-        self.assertEquals(Field.sort_as, "Float")
 
         expected_results = {
             '45:1': [
@@ -129,11 +139,9 @@ class FieldTests(FieldTests):
 
         }
 
-        self._execute_expectations(Field, expected_results)
+        self._execute_expectations('float_ratio', expected_results)
 
     def test_usd_int(self):
-        from .ddb_field import USDInt as Field
-        self.assertEquals(Field.sort_as, "Integer")
         expected_results = {
             '$45': [
                 ({'rawValue': '45'}, {}),
@@ -147,11 +155,9 @@ class FieldTests(FieldTests):
 
         }
 
-        self._execute_expectations(Field, expected_results)
+        self._execute_expectations('usd_int', expected_results)
 
     def test_usd_float(self):
-        from .ddb_field import USDFloat as Field
-        self.assertEquals(Field.sort_as, "Float")
 
         expected_results = {
             '$45.00': [
@@ -170,11 +176,9 @@ class FieldTests(FieldTests):
 
         }
 
-        self._execute_expectations(Field, expected_results)
+        self._execute_expectations('usd_float', expected_results)
 
     def test_standard_percentage(self):
-        from .ddb_field import STDPercentage as Field
-        self.assertEquals(Field.sort_as, "Float")
 
         expected_results = {
             '100%': [
@@ -194,11 +198,9 @@ class FieldTests(FieldTests):
 
         }
 
-        self._execute_expectations(Field, expected_results)
+        self._execute_expectations('std_percentage', expected_results)
 
     def test_raw_percentage(self):
-        from .ddb_field import RawPercentage as Field
-        self.assertEquals(Field.sort_as, "Float")
 
         expected_results = {
             '100%': [
@@ -222,11 +224,9 @@ class FieldTests(FieldTests):
 
         }
 
-        self._execute_expectations(Field, expected_results)
+        self._execute_expectations('raw_percentage', expected_results)
 
     def test_oracle_yesno(self):
-        from .ddb_field import OracleYesNo as Field
-        self.assertEquals(Field.sort_as, "Text")
 
         expected_results = {
             'Yes': [
@@ -246,11 +246,9 @@ class FieldTests(FieldTests):
 
         }
 
-        self._execute_expectations(Field, expected_results)
+        self._execute_expectations('oracleyes_no', expected_results)
 
     def test_yesno(self):
-        from .ddb_field import YesNo as Field
-        self.assertEquals(Field.sort_as, "Text")
 
         expected_results = {
             'Yes': [
@@ -272,19 +270,21 @@ class FieldTests(FieldTests):
 
         }
 
-        self._execute_expectations(Field, expected_results)
+        self._execute_expectations('yes_no', expected_results)
 
     def test_delimited_field(self):
-        from .ddb_field import DelimitedField as Field
-        self.assertEquals(Field.sort_as, "Text")
 
         expected_results = {
             '[foo; baz; bat]': [
-                ({'rawValue': 'foo; baz; bat;'}, {'delimiter': ';'}),
+                ({'rawValue': 'foo; baz; bat;'}, {}),
+                ({'rawValue': 'foo| baz| bat|'}, {'delimiter': '|'}),
             ],
             '{foo: bananas; baz: ponies; bat: pumpkins}': [
-                ({'rawValue': 'foo -- bananas; baz -- ponies; bat -- pumpkins;'},
-                    {'delimiter': ';'}),
+                (
+                    {'rawValue':
+                    'foo -- bananas; baz -- ponies; bat -- pumpkins;'},
+                    {}
+                ),
             ],
             'N/A': [
                 ({'rawValue': None}, {}),
@@ -292,11 +292,9 @@ class FieldTests(FieldTests):
 
         }
 
-        self._execute_expectations(Field, expected_results)
+        self._execute_expectations('delimited_field', expected_results)
 
     def test_ranking_int(self):
-        from .ddb_field import RankingInt as Field
-        self.assertEquals(Field.sort_as, "Integer")
 
         expected_results = {
             '1': [
@@ -309,11 +307,9 @@ class FieldTests(FieldTests):
 
         }
 
-        self._execute_expectations(Field, expected_results)
+        self._execute_expectations('ranking_int', expected_results)
 
     def test_int(self):
-        from .ddb_field import Int as Field
-        self.assertEquals(Field.sort_as, "Integer")
 
         expected_results = {
             '1': [
@@ -336,11 +332,9 @@ class FieldTests(FieldTests):
 
         }
 
-        self._execute_expectations(Field, expected_results)
+        self._execute_expectations('int', expected_results)
 
     def test_yearless_datetime(self):
-        from .ddb_field import YearlessDatetime as Field
-        self.assertEquals(Field.sort_as, "Text")
 
         expected_results = {
             'September 10': [
@@ -358,11 +352,9 @@ class FieldTests(FieldTests):
             ],
 
         }
-        self._execute_expectations(Field, expected_results)
+        self._execute_expectations('yearless_datetime', expected_results)
 
     def test_phone(self):
-        from .ddb_field import Phone as Field
-        self.assertEquals(Field.sort_as, "Text")
 
         expected_results = {
             '(800) 555-4444': [
@@ -380,11 +372,9 @@ class FieldTests(FieldTests):
 
         }
 
-        self._execute_expectations(Field, expected_results)
+        self._execute_expectations('phone', expected_results)
 
     def test_float(self):
-        from .ddb_field import USNFloat as Field
-        self.assertEquals(Field.sort_as, "Float")
 
         expected_results = {
             '1': [
@@ -402,6 +392,6 @@ class FieldTests(FieldTests):
 
         }
 
-        self._execute_expectations(Field, expected_results)
+        self._execute_expectations('float', expected_results)
 
 
