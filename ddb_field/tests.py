@@ -54,7 +54,8 @@ class FieldTestBase(unittest.TestCase):
 
 
 
-class FieldTests(FieldTestBase):
+class TextTypeTests(FieldTestBase):
+
     def test_comma_formatter(self):
         from .ddb_field import comma_me
         num = comma_me(10000000000)
@@ -120,111 +121,6 @@ class FieldTests(FieldTestBase):
         }
 
         self._execute_expectations('textline', expected_results)
-
-    def test_float_ratio(self):
-
-        expected_results = {
-            '45:1': [
-                ({'rawValue': '45.558'}, {'precision': 0}),
-                ({'rawValue': 45.558}, {'precision': 0}),
-            ],
-            '45.56:1': [
-                ({'rawValue': '45.558'}, {'precision': 2}),
-                ({'rawValue': 45.558}, {'precision': 2}),
-            ],
-            'N/A': [
-                ({'rawValue': None}, {'precision': 0}),
-                ({'rawValue': None}, {'precision': 2}),
-            ],
-
-        }
-
-        self._execute_expectations('float_ratio', expected_results)
-
-    def test_usd_int(self):
-        expected_results = {
-            '$45': [
-                ({'rawValue': '45'}, {}),
-                ({'rawValue': 45}, {}),
-                ({'rawValue': '45.12'}, {}),
-            ],
-            'N/A': [
-                ({'rawValue': None}, {}),
-                ({'rawValue': None}, {}),
-            ],
-
-        }
-
-        self._execute_expectations('usd_int', expected_results)
-
-    def test_usd_float(self):
-
-        expected_results = {
-            '$45.00': [
-                ({'rawValue': '45'}, {}),
-                ({'rawValue': 45}, {}),
-            ],
-            '$45.35': [
-                ({'rawValue': 45.35}, {}),
-                ({'rawValue': '45.35'}, {}),
-                ({'rawValue': 45.355}, {}),
-            ],
-            'N/A': [
-                ({'rawValue': None}, {}),
-                ({'rawValue': None}, {}),
-            ],
-
-        }
-
-        self._execute_expectations('usd_float', expected_results)
-
-    def test_standard_percentage(self):
-
-        expected_results = {
-            '100%': [
-                ({'rawValue': 99.999999}, {'precision': 0}),
-                ({'rawValue': '99.999999'}, {'precision': 0}),
-                ({'rawValue': 100}, {'precision': 0}),
-                ({'rawValue': '100'}, {'precision': 0}),
-            ],
-            '99.99%': [
-                ({'rawValue': 99.99}, {'precision': 2}),
-                ({'rawValue': '99.99'}, {'precision': 2}),
-            ],
-            'N/A': [
-                ({'rawValue': None}, {'precision': 0}),
-                ({'rawValue': None}, {'precision': 2}),
-            ],
-
-        }
-
-        self._execute_expectations('std_percentage', expected_results)
-
-    def test_raw_percentage(self):
-
-        expected_results = {
-            '100%': [
-                ({'rawValue': .999999}, {'precision': 0}),
-                ({'rawValue': '.999999'}, {'precision': 0}),
-                ({'rawValue': 1}, {'precision': 0}),
-                ({'rawValue': '1'}, {'precision': 0}),
-            ],
-            '99.99%': [
-                ({'rawValue': .9999}, {'precision': 2}),
-                ({'rawValue': '.9999'}, {'precision': 2}),
-            ],
-            'N/A': [
-                ({'rawValue': None}, {'precision': 0}),
-                ({'rawValue': None}, {'precision': 2}),
-            ],
-            'N/A': [
-                ({'rawValue': 0}, {'precision': 0}),
-                ({'rawValue': '0'}, {'precision': 2}),
-            ],
-
-        }
-
-        self._execute_expectations('raw_percentage', expected_results)
 
     def test_oracle_yesno(self):
 
@@ -309,31 +205,6 @@ class FieldTests(FieldTestBase):
 
         self._execute_expectations('ranking_int', expected_results)
 
-    def test_int(self):
-
-        expected_results = {
-            '1': [
-                ({'rawValue': 1}, {}),
-                ({'rawValue': '1'}, {}),
-            ],
-            '1,000': [
-                ({'rawValue': 1000}, {}),
-                ({'rawValue': '1000'}, {}),
-                ({'rawValue': '1,000'}, {}),
-            ],
-            '100,000': [
-                ({'rawValue': 100000}, {}),
-                ({'rawValue': '100000'}, {}),
-                ({'rawValue': '100,000'}, {}),
-            ],
-            'N/A': [
-                ({'rawValue': None}, {}),
-            ],
-
-        }
-
-        self._execute_expectations('int', expected_results)
-
     def test_yearless_datetime(self):
 
         expected_results = {
@@ -374,17 +245,48 @@ class FieldTests(FieldTestBase):
 
         self._execute_expectations('phone', expected_results)
 
+
+class NumericTypeTests(FieldTestBase):
+
+    def test_int(self):
+
+        expected_results = {
+            '1': [
+                ({'rawValue': 1}, {}),
+                ({'rawValue': '1'}, {}),
+            ],
+            '1,000': [
+                ({'rawValue': 1000}, {}),
+                ({'rawValue': '1000'}, {}),
+                ({'rawValue': '1,000'}, {}),
+            ],
+            '100,000': [
+                ({'rawValue': 100000}, {}),
+                ({'rawValue': '100000'}, {}),
+                ({'rawValue': '100,000'}, {}),
+            ],
+            'N/A': [
+                ({'rawValue': None}, {}),
+            ],
+
+        }
+
+        self._execute_expectations('int', expected_results)
+
     def test_float(self):
 
         expected_results = {
             '1': [
                 ({'rawValue': 1}, {'precision': 0}),
                 ({'rawValue': '1'}, {'precision': 0}),
-            ],
-            '1.00': [
                 ({'rawValue': 1.000}, {'precision': 2}),
                 ({'rawValue': '1.000'}, {'precision': 2}),
                 ({'rawValue': '1'}, {'precision': 2}),
+            ],
+            '1.5': [
+                ({'rawValue': 1.5}, {'precision': 1}),
+                ({'rawValue': '1.45'}, {'precision': 1}),
+                ({'rawValue': 1.50}, {'precision': 2}),
             ],
             'N/A': [
                 ({'rawValue': None}, {}),
@@ -393,5 +295,149 @@ class FieldTests(FieldTestBase):
         }
 
         self._execute_expectations('float', expected_results)
+
+    def test_float_ratio(self):
+
+        expected_results = {
+            '46:1': [
+                ({'rawValue': '45.558'}, {'precision': 0}),
+                ({'rawValue': 45.558}, {'precision': 0}),
+            ],
+            '45.56:1': [
+                ({'rawValue': '45.558'}, {'precision': 2}),
+                ({'rawValue': 45.558}, {'precision': 2}),
+            ],
+            'N/A': [
+                ({'rawValue': None}, {'precision': 0}),
+                ({'rawValue': None}, {'precision': 2}),
+            ],
+
+        }
+
+        self._execute_expectations('float_ratio', expected_results)
+
+    def test_usd_int(self):
+        expected_results = {
+            '$45': [
+                ({'rawValue': '45'}, {}),
+                ({'rawValue': 45}, {}),
+                ({'rawValue': '45.12'}, {}),
+            ],
+            'N/A': [
+                ({'rawValue': None}, {}),
+                ({'rawValue': None}, {}),
+            ],
+
+        }
+
+        self._execute_expectations('usd_int', expected_results)
+
+    def test_usd_float(self):
+
+        expected_results = {
+            '$45': [
+                ({'rawValue': '45'}, {}),
+                ({'rawValue': 45}, {}),
+            ],
+            '$45.35': [
+                ({'rawValue': 45.35}, {}),
+                ({'rawValue': '45.35'}, {}),
+            ],
+            '$45.36': [
+                ({'rawValue': 45.355}, {}),
+            ],
+            'N/A': [
+                ({'rawValue': None}, {}),
+                ({'rawValue': None}, {}),
+            ],
+
+        }
+
+        self._execute_expectations('usd_float', expected_results)
+
+    def test_standard_percentage(self):
+
+        expected_results = {
+            '100%': [
+                ({'rawValue': 99.999999}, {'precision': 0}),
+                ({'rawValue': '99.999999'}, {'precision': 0}),
+                ({'rawValue': 100}, {'precision': 0}),
+                ({'rawValue': '100'}, {'precision': 0}),
+            ],
+            '99.99%': [
+                ({'rawValue': 99.99}, {'precision': 2}),
+                ({'rawValue': '99.99'}, {'precision': 2}),
+            ],
+            'N/A': [
+                ({'rawValue': None}, {'precision': 0}),
+                ({'rawValue': None}, {'precision': 2}),
+            ],
+
+        }
+
+        self._execute_expectations('std_percentage', expected_results)
+
+    def test_raw_percentage(self):
+
+        expected_results = {
+            '100%': [
+                ({'rawValue': .999999}, {'precision': 0}),
+                ({'rawValue': '.999999'}, {'precision': 0}),
+                ({'rawValue': 1}, {'precision': 0}),
+                ({'rawValue': '1'}, {'precision': 0}),
+            ],
+            '99.99%': [
+                ({'rawValue': .9999}, {'precision': 2}),
+                ({'rawValue': '.9999'}, {'precision': 2}),
+            ],
+            'N/A': [
+                ({'rawValue': None}, {'precision': 0}),
+                ({'rawValue': None}, {'precision': 2}),
+            ],
+            'N/A': [
+                ({'rawValue': 0}, {'precision': 0}),
+                ({'rawValue': '0'}, {'precision': 2}),
+            ],
+
+        }
+
+        self._execute_expectations('raw_percentage', expected_results)
+
+
+class RawValuesTests(FieldTestBase):
+
+    def test_raw_values(self):
+        field = DDBField('1.5', 'float', precision=1)
+        self.assertEquals(field.Field.raw_value, 1.5)
+
+        field = DDBField('1.50', 'float', precision=1)
+        self.assertEquals(field.Field.raw_value, 1.5)
+
+        field = DDBField('1.55', 'float', precision=1)
+        self.assertEquals(field.Field.raw_value, 1.6)
+
+        field = DDBField('1.9', 'int')
+        self.assertEquals(field.Field.raw_value, 2)
+
+        field = DDBField('1.50', 'int')
+        self.assertEquals(field.Field.raw_value, 2)
+
+        field = DDBField('1.55', 'int')
+        self.assertEquals(field.Field.raw_value, 2)
+
+        field = DDBField('1.2', 'int')
+        self.assertEquals(field.Field.raw_value, 1)
+
+        field = DDBField('1', 'int')
+        self.assertEquals(field.Field.raw_value, 1)
+
+        field = DDBField('.5', 'int')
+        self.assertEquals(field.Field.raw_value, 1)
+
+        field = DDBField('21', 'float_ratio')
+        self.assertEquals(field.Field.raw_value, 21)
+
+        field = DDBField('2,100', 'float_ratio')
+        self.assertEquals(field.Field.raw_value, 2100)
 
 

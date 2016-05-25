@@ -1,7 +1,7 @@
 import datetime
-import math
 import re
 from collections import OrderedDict
+from copy import deepcopy
 
 
 def comma_me(amount):
@@ -18,20 +18,20 @@ class Field(object):
     def __init__(self, raw_value, precision=None, case=None, delimiter=';',
                  vocabulary={}):
         self.value = raw_value
+        self.raw_value = None
         self.vocabulary = {}
         self.precision=precision
         self.sort_as = "Text"
         self.case = case
         self.delimiter = delimiter
         self.convert()
+        self.set_raw()
         # TODO: Re-implement vocabulary
         # if self.field_metadata['displayName'] in vocabulary:
         #     self.vocabulary = vocabulary[self.field_metadata['displayName']]
         # if self.value in self.vocabulary:
         #     self.value = self.vocabulary[self.value]
 
-        if self.value is None or self.value == 'None':
-            self.value = ''
 
     @classmethod
     def convert(self):
@@ -41,6 +41,76 @@ class Field(object):
                 self.value = str(self.value)
         else:
             self.value = 'N/A'
+
+    @classmethod
+    def set_raw(self):
+        if not self.raw_value:
+            if self.value is None or self.value == 'None':
+                self.value = ''
+                self.raw_value = None
+            elif self.value == 'N/A':
+                self.raw_value = None
+            else:
+                self.raw_value = self.value
+
+    @classmethod
+    def _round_decimal(self, decimal, whole):
+        vallist = []
+        decimal = decimal.ljust(self.precision + 1, '0')
+        for i in decimal:
+            vallist.append(i)
+        int_vals = [int(i) for i in vallist]
+        test_num = int_vals[self.precision]
+        cutoff_num = int_vals[self.precision - 1]
+        if test_num > cutoff_num or test_num == 5:
+            int_vals[self.precision - 1] = int_vals[self.precision - 1] + 1
+        if self.precision == 0 and int(int_vals[0]) >= 5:
+            whole = int(whole or 0) + 1
+            return whole
+        ind = 0
+        rounded_decimal = []
+        for i in int_vals:
+            if ind < self.precision:
+                rounded_decimal.append(str(i))
+            ind += 1
+        rounded_decimal = ('').join(rounded_decimal)
+        return float('%s.%s' % (whole, rounded_decimal))
+
+
+
+    @classmethod
+    def _parse_number(self, value, precision=0, comma=True):
+        if value and str(value).lower() not in ['none', 'n/a']:
+            strval = str(value).replace(',', '')
+            numval = float(strval)
+            # force round up on .*5 (python does not do this out of the box)
+            if '.' in strval:
+                parts = strval.split('.')
+                dollars = parts[0]
+                cents = parts[1]
+                rounded_decimal = self._round_decimal(cents, dollars)
+                numval = float(rounded_decimal)
+            else:
+                numval = round(numval, precision)
+
+            if float(numval).is_integer():
+                numval = int(numval)
+
+            strval = str(deepcopy(numval))
+
+            if comma:
+                if '.' in strval:
+                    parts = strval.split('.')
+                    dollars = comma_me(parts[0])
+                    cents = parts[1]
+                    strval = '%s.%s' % (dollars, cents)
+                else:
+                    strval = comma_me(strval)
+
+            return strval, numval
+
+        else:
+            return value, None
 
 
 class TextLine(Field):
@@ -69,107 +139,84 @@ class TextLine(Field):
 
 
 class USNFloat(Field):
-    sort_as = "Float"
 
     @classmethod
     def convert(self):
+        self.sort_as = "Float"
         if self.value:
-            if self.precision == 0:
-                self.value = math.trunc(float(self.value))
-            elif self.precision is not None:
-                self.value = round(
-                    float(self.value), self.precision)
-                parts = str(self.value).split('.')
-                dollars = parts[0]
-                cents = parts[1].rjust( self.precision, '0')
-                self.value = dollars + '.' + cents
-            self.value = str(self.value)
+            self.value, self.raw_value = self._parse_number(
+                self.value, self.precision)
         else:
             self.value = 'N/A'
+            self.raw_value = None
 
 
 class FloatRatio(Field):
-    sort_as = "Float"
 
     @classmethod
     def convert(self):
+        self.sort_as = "Float"
         if self.value:
-            self.value = float(self.value)
-            if self.precision == 0:
-                self.value = math.trunc(self.value)
-            elif self.precision is not None:
-                self.value = round(
-                    self.value, self.precision)
+            self.value, self.raw_value = self._parse_number(
+                self.value, self.precision)
             self.value = str(self.value) + ':1'
         else:
             self.value = 'N/A'
 
 
 class USDFloat(Field):
-    sort_as = "Float"
 
     @classmethod
     def convert(self):
+        self.sort_as = "Float"
+        self.precision = 2
         if self.value:
-            self.value = '$%s' % str(round(float(self.value), 2))
-            parts = self.value.split('.')
-            dollars = parts[0]
-            cents = parts[1].rjust(2, '0')
-            self.value = dollars + '.' + cents
+            self.value, self.raw_value = self._parse_number(
+                self.value, self.precision)
+            self.value = '$%s' % self.value
         else:
             self.value = 'N/A'
 
 
 class USDInt(Field):
-    sort_as = "Integer"
 
     @classmethod
     def convert(self):
+        self.sort_as = "Integer"
+        self.precision = 0
         if self.value:
-            self.value = '$%s' % comma_me(
-                str(math.trunc(round(float(self.value)))))
+            self.value, self.raw_value = self._parse_number(
+                self.value, self.precision)
+            self.value = '$%s' % self.value
         else:
             self.value = 'N/A'
 
 
 class STDPercentage(Field):
-    sort_as = "Float"
 
     @classmethod
     def convert(self):
+        self.sort_as = "Float"
         if self.value:
-            if not isinstance(self.value, (int, float, complex)):  # noqa
-                try:
-                    self.value = float(self.value)
-                except Exception:
-                    self.value = 'N/A'
-                    return
-            if self.value == 0:
-                self.value = 'N/A'
-                return
-            if self.precision == 0 or self.precision is None:
-                self.value = math.trunc(round(self.value))
-            elif self.precision is not None:
-                self.value = round(self.value, self.precision)
-            self.value = str(self.value) + '%'
+            self.value, self.raw_value = self._parse_number(
+                self.value, self.precision)
+            self.value = self.value + '%'
         else:
             self.value = 'N/A'
 
 
 class RawPercentage(Field):
-    sort_as = "Float"
 
     @classmethod
     def convert(self):
+        self.sort_as = "Float"
         if self.value:
             self.value = float(self.value) * 100
             if self.value == 0:
                 self.value = 'N/A'
                 return
-            if self.precision == 0 or self.precision is None:
-                self.value = math.trunc(round(self.value))
-            elif self.precision is not None:
-                self.value = round(self.value, self.precision)
+            self.value, self.raw_value = self._parse_number(
+                self.value, self.precision)
             self.value = str(self.value) + '%'
         else:
             self.value = 'N/A'
@@ -249,10 +296,10 @@ class Phone(Field):
 
 
 class RankingInt(Field):
-    sort_as = "Integer"
 
     @classmethod
     def convert(self):
+        self.sort_as = "Integer"
         if self.value:
             self.value = '%s' % self.value
         else:
@@ -260,17 +307,17 @@ class RankingInt(Field):
 
 
 class Int(Field):
-    sort_as = "Integer"
 
     @classmethod
     def convert(self):
+        self.sort_as = "Integer"
         if not self.value:
             self.value =  'N/A'
-        elif int(str(self.value).replace(',','')) < 1000:
-            self.value = '%s' % self.value
-        else:
-            self.value = str(comma_me(str(self.value)))
-
+            return
+        self.precision = 0
+        if self.value:
+            self.value, self.raw_value = self._parse_number(
+                self.value, self.precision)
 
 
 class DelimitedField(Field):
@@ -295,7 +342,8 @@ class DelimitedField(Field):
 class DDBField(object):
 
     @classmethod
-    def __init__(self, field_type):
+    def __init__(self, value, field_type=None, precision=None,
+                 case=None, delimiter=';',):
         _default_field_model = Field
         _field_map = {
             'float': USNFloat,
@@ -315,7 +363,16 @@ class DDBField(object):
             'delimited_field': DelimitedField,
         }
 
-        if field_type in field_map:
-            self.FieldClass = field_map[field_type]
+        if field_type and field_type in _field_map:
+            self.Field = _field_map[field_type]
         else:
-            self.FieldClass = default_field_model
+            self.Field = _default_field_model
+
+        self.field_type = field_type
+
+        self.Field(
+            value,
+            precision=precision,
+            case=case,
+            delimiter=delimiter
+        )
