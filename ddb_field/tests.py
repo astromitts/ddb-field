@@ -1,5 +1,4 @@
 import unittest
-import coverage
 from .ddb_field import DDBField
 
 
@@ -7,463 +6,421 @@ class FieldTestBase(unittest.TestCase):
     ''' Base class for tests that do not require database connectvity
     '''
     def setUp(self):
-       pass
+        pass
 
     def tearDown(self):
         pass
 
-    def _execute_expectations(self, field_type=None, expectations={}):
-        for result, inputs in expectations.items():
-            if result.startswith('[') and result.endswith(']'):
-                result = result.replace('[', '').replace(']', '').split(';')
-                result = [r.strip() for r in result]
-                print ('result: %s' % result)
-            elif  result.startswith('{') and result.endswith('}'):
-                result_list = result.replace('{', '').replace(
-                    '}', '').split(';')
-                result = []
-                for part in result_list:
-                    parts = part.split(':')
-                    result.append((parts[0].strip(), parts[1].strip()))
-                print ('result: %s' % result)
-
-            for _inputs in inputs:
-                print("testing %s for %s" % (_inputs[0]['rawValue'], result))
-                if _inputs[1] and 'precision' in _inputs[1]:
-                    precision = _inputs[1]['precision']
-                else:
-                    precision = None
-
-                if _inputs[1] and 'case' in _inputs[1]:
-                    case = _inputs[1]['case']
-                else:
-                    case = None
-
-                if _inputs[1] and 'delimiter' in _inputs[1]:
-                    delimiter = _inputs[1]['delimiter']
-                else:
-                    delimiter = ';'
-
-                field = DDBField(
-                    value=_inputs[0]['rawValue'],
-                    field_type=field_type,
-                    precision=precision,
-                    case=case,
-                    delimiter=delimiter,
-                )
-                self.assertEquals(field.Field.value, result)
-
-
-
-class TextTypeTests(FieldTestBase):
-
-    def test_comma_formatter(self):
-        from .ddb_field import comma_me
-        num = comma_me(10000000000)
-        self.assertTrue(num == '10,000,000,000')
-
-        num = comma_me(100)
-        self.assertTrue(num == '100')
-
-    def test_default_field(self):
-
-        expected_results = {
-            'winter is coming.': [
-                ({'rawValue': 'winter is coming.'}, {}),
-            ],
-            '2000': [
-                ({'rawValue': '2000'}, {}),
-                ({'rawValue': 2000}, {}),
-            ],
-            'N/A': [
-                ({'rawValue': None}, {}),
-            ],
-
-        }
-
-        self._execute_expectations(expectations=expected_results)
-
-
-    def test_textline(self):
-
-        expected_results = {
-            'Winter is coming.': [
-                ({'rawValue': 'winter is coming.'}, {}),
-                ({'rawValue': 'WINTER IS COMING.'}, {}),
-            ],
-            'Winter Is Coming.': [
-                ({'rawValue': 'winter is coming.'}, {'case': 'title'}),
-                ({'rawValue': 'WINTER IS COMING.'}, {'case': 'title'}),
-            ],
-            'CA': [
-                ({'rawValue': 'ca'}, {'case': 'upper'}),
-                ({'rawValue': 'CA'}, {'case': 'upper'}),
-            ],
-            'NCAA II': [
-                ({'rawValue': 'ncaa ii'}, {'case': 'upper'}),
-                ({'rawValue': 'ncaa II'}, {'case': 'upper'}),
-            ],
-            '2000': [
-                ({'rawValue': '2000'}, {}),
-                ({'rawValue': 2000}, {}),
-            ],
-            '"hello"': [
-                ({'rawValue': '\u201dhello\u201d'}, {}),
-                ({'rawValue': '\u201chello\u201c'}, {}),
-            ],
-            "'hello'": [
-                ({'rawValue': '\u2019hello\u2019'}, {}),
-                ({'rawValue': '\u2018hello\u2018'}, {}),
-            ],
-            'N/A': [
-                ({'rawValue': None}, {}),
-                ({'rawValue':'N/A'}, {}),
-                ({'rawValue':'N/a'}, {}),
-                ({'rawValue':'n/a'}, {}),
-            ],
-
-        }
-
-        self._execute_expectations('textline', expected_results)
-
-    def test_oracle_yesno(self):
-
-        expected_results = {
-            'Yes': [
-                ({'rawValue': 'Y'}, {}),
-                ({'rawValue': 'y'}, {}),
-                ({'rawValue': 'x'}, {}),
-                ({'rawValue': 'X'}, {}),
-                ({'rawValue': 'YES'}, {}),
-                ({'rawValue': 1}, {}),
-            ],
-            'No': [
-                ({'rawValue': None}, {}),
-                ({'rawValue': 0}, {}),
-                ({'rawValue': 'N'}, {}),
-                ({'rawValue': 'False'}, {}),
-            ],
-
-        }
-
-        self._execute_expectations('oracleyes_no', expected_results)
-
-    def test_yesno(self):
-
-        expected_results = {
-            'Yes': [
-                ({'rawValue': 'Y'}, {}),
-                ({'rawValue': 'y'}, {}),
-                ({'rawValue': 'x'}, {}),
-                ({'rawValue': 'X'}, {}),
-                ({'rawValue': 'YES'}, {}),
-                ({'rawValue': 1}, {}),
-            ],
-            'No': [
-                ({'rawValue': 0}, {}),
-                ({'rawValue': 'N'}, {}),
-                ({'rawValue': 'False'}, {}),
-            ],
-            'N/A': [
-                ({'rawValue': None}, {}),
-            ],
-
-        }
-
-        self._execute_expectations('yes_no', expected_results)
-
-    def test_delimited_field(self):
-
-        expected_results = {
-            '[foo; baz; bat]': [
-                ({'rawValue': 'foo; baz; bat;'}, {}),
-                ({'rawValue': 'foo| baz| bat|'}, {'delimiter': '|'}),
-            ],
-            '{foo: bananas; baz: ponies; bat: pumpkins}': [
-                (
-                    {'rawValue':
-                    'foo -- bananas; baz -- ponies; bat -- pumpkins;'},
-                    {}
-                ),
-            ],
-            'N/A': [
-                ({'rawValue': None}, {}),
-            ],
-
-        }
-
-        self._execute_expectations('delimited_field', expected_results)
-
-    def test_ranking_int(self):
-
-        expected_results = {
-            '1': [
-                ({'rawValue': 1}, {}),
-                ({'rawValue': '1'}, {}),
-            ],
-            '': [
-                ({'rawValue': None}, {}),
-            ],
-
-        }
-
-        self._execute_expectations('ranking_int', expected_results)
-
-    def test_yearless_datetime(self):
-
-        expected_results = {
-            'September 10': [
-                ({'rawValue': '1986-09-10'}, {}),
-                ({'rawValue': '09/10'}, {}),
-                ({'rawValue': '09-10-1986'}, {}),
-                ({'rawValue': '09-10-86'}, {}),
-                ({'rawValue': '09/10/86'}, {}),
-            ],
-            '09+10+1986': [
-                ({'rawValue': '09+10+1986'}, {}),
-            ],
-            'N/A': [
-                ({'rawValue': None}, {}),
-            ],
-
-        }
-        self._execute_expectations('yearless_datetime', expected_results)
-
-    def test_phone(self):
-
-        expected_results = {
-            '(800) 555-4444': [
-                ({'rawValue': '8005554444'}, {}),
-            ],
-            '(800) 555-4444 ext. 456': [
-                ({'rawValue': '8005554444456'}, {}),
-            ],
-            '456': [
-                ({'rawValue': '456'}, {}),
-            ],
-            'N/A': [
-                ({'rawValue': None}, {}),
-            ],
-
-        }
-
-        self._execute_expectations('phone', expected_results)
-
-
-class NumericTypeTests(FieldTestBase):
-
-    def test_int(self):
-
-        expected_results = {
-            '1': [
-                ({'rawValue': 1}, {}),
-                ({'rawValue': '1'}, {}),
-            ],
-            '1,000': [
-                ({'rawValue': 1000}, {}),
-                ({'rawValue': '1000'}, {}),
-                ({'rawValue': '1,000'}, {}),
-            ],
-            '100,000': [
-                ({'rawValue': 100000}, {}),
-                ({'rawValue': '100000'}, {}),
-                ({'rawValue': '100,000'}, {}),
-            ],
-            'N/A': [
-                ({'rawValue': None}, {}),
-            ],
-
-        }
-
-        self._execute_expectations('int', expected_results)
-
-    def test_float(self):
-
-        expected_results = {
-            '1': [
-                ({'rawValue': 1}, {'precision': 0}),
-                ({'rawValue': '1'}, {'precision': 0}),
-                ({'rawValue': 1.000}, {'precision': 2}),
-                ({'rawValue': '1.000'}, {'precision': 2}),
-                ({'rawValue': '1'}, {'precision': 2}),
-            ],
-            '1.5': [
-                ({'rawValue': 1.5}, {'precision': 1}),
-                ({'rawValue': '1.45'}, {'precision': 1}),
-                ({'rawValue': 1.50}, {'precision': 2}),
-            ],
-            'N/A': [
-                ({'rawValue': None}, {}),
-            ],
-
-        }
-
-        self._execute_expectations('float', expected_results)
-
-    def test_float_ratio(self):
-
-        expected_results = {
-            '46:1': [
-                ({'rawValue': '45.558'}, {'precision': 0}),
-                ({'rawValue': 45.558}, {'precision': 0}),
-            ],
-            '45.56:1': [
-                ({'rawValue': '45.558'}, {'precision': 2}),
-                ({'rawValue': 45.558}, {'precision': 2}),
-            ],
-            'N/A': [
-                ({'rawValue': None}, {'precision': 0}),
-                ({'rawValue': None}, {'precision': 2}),
-            ],
-
-        }
-
-        self._execute_expectations('float_ratio', expected_results)
-
-    def test_usd_int(self):
-        expected_results = {
-            '$45': [
-                ({'rawValue': '45'}, {}),
-                ({'rawValue': 45}, {}),
-                ({'rawValue': '45.12'}, {}),
-            ],
-            'N/A': [
-                ({'rawValue': None}, {}),
-                ({'rawValue': None}, {}),
-            ],
-
-        }
-
-        self._execute_expectations('usd_int', expected_results)
-
-    def test_usd_float(self):
-
-        expected_results = {
-            '$45': [
-                ({'rawValue': '45'}, {}),
-                ({'rawValue': 45}, {}),
-            ],
-            '$45.35': [
-                ({'rawValue': 45.35}, {}),
-                ({'rawValue': '45.35'}, {}),
-            ],
-            '$45.36': [
-                ({'rawValue': 45.355}, {}),
-            ],
-            'N/A': [
-                ({'rawValue': None}, {}),
-                ({'rawValue': ''}, {}),
-                ({'rawValue': 'foo'}, {}),
-            ],
-
-        }
-
-        self._execute_expectations('usd_float', expected_results)
-
-    def test_standard_percentage(self):
-
-        expected_results = {
-            '100%': [
-                ({'rawValue': 99.999999}, {'precision': 0}),
-                ({'rawValue': '99.999999'}, {'precision': 0}),
-                ({'rawValue': 100}, {'precision': 0}),
-                ({'rawValue': '100'}, {'precision': 0}),
-            ],
-            '99.99%': [
-                ({'rawValue': 99.99}, {'precision': 2}),
-                ({'rawValue': '99.99'}, {'precision': 2}),
-            ],
-            'N/A': [
-                ({'rawValue': None}, {'precision': 0}),
-                ({'rawValue': None}, {'precision': 2}),
-            ],
-
-        }
-
-        self._execute_expectations('std_percentage', expected_results)
-
-    def test_raw_percentage(self):
-
-        expected_results = {
-            '100%': [
-                ({'rawValue': .999999}, {'precision': 0}),
-                ({'rawValue': '.999999'}, {'precision': 0}),
-                ({'rawValue': 1}, {'precision': 0}),
-                ({'rawValue': '1'}, {'precision': 0}),
-            ],
-            '99.99%': [
-                ({'rawValue': .9999}, {'precision': 2}),
-                ({'rawValue': '.9999'}, {'precision': 2}),
-            ],
-            'N/A': [
-                ({'rawValue': None}, {'precision': 0}),
-                ({'rawValue': None}, {'precision': 2}),
-            ],
-            'N/A': [
-                ({'rawValue': 0}, {'precision': 0}),
-                ({'rawValue': '0'}, {'precision': 2}),
-                ({'rawValue': '0'}, {'precision': None}),
-            ],
-
-        }
-
-        self._execute_expectations('raw_percentage', expected_results)
-
-
-class RawValuesTests(FieldTestBase):
-
-    def test_raw_values(self):
-        field = DDBField('1.5', 'float', precision=1)
-        self.assertEquals(field.Field.raw_value, 1.5)
-
-        field = DDBField('1.50', 'float', precision=1)
-        self.assertEquals(field.Field.raw_value, 1.5)
-
-        field = DDBField('1.55', 'float', precision=1)
-        self.assertEquals(field.Field.raw_value, 1.6)
-
-        field = DDBField('1.9', 'int')
-        self.assertEquals(field.Field.raw_value, 2)
-
-        field = DDBField('1.50', 'int')
-        self.assertEquals(field.Field.raw_value, 2)
-
-        field = DDBField('1.55', 'int')
-        self.assertEquals(field.Field.raw_value, 2)
-
-        field = DDBField('1.2', 'int')
-        self.assertEquals(field.Field.raw_value, 1)
-
-        field = DDBField('1', 'int')
-        self.assertEquals(field.Field.raw_value, 1)
-
-        field = DDBField('.5', 'int')
-        self.assertEquals(field.Field.raw_value, 1)
-
-        field = DDBField('21', 'float_ratio')
-        self.assertEquals(field.Field.raw_value, 21)
-
-        field = DDBField('2,100', 'float_ratio')
-        self.assertEquals(field.Field.raw_value, 2100)
-
-        field = DDBField('1', 'usd_int')
-        self.assertEquals(field.Field.raw_value, 1)
-        self.assertEquals(field.Field.value, '$1')
-
-        field = DDBField('1', 'std_percentage')
-        self.assertEquals(field.Field.raw_value, 1)
-        self.assertEquals(field.Field.value, '1%')
-
-        field = DDBField('1', 'raw_percentage')
-        self.assertEquals(field.Field.raw_value, 100)
-        self.assertEquals(field.Field.value, '100%')
-
-        field = DDBField('winter is coming', 'textline')
-        self.assertEquals(field.Field.raw_value, 'Winter is coming')
-        self.assertEquals(field.Field.value, 'Winter is coming')
-
-        field = DDBField('N/A', 'textline')
+
+class OrcYesNo(FieldTestBase):
+
+    def test(self):
+
+        field = DDBField('Y', 'oracleyes_no')
+        self.assertEquals(field.Field.raw_value, 'Yes')
+        self.assertEquals(field.Field.value, 'Yes')
+
+        field = DDBField('y', 'oracleyes_no')
+        self.assertEquals(field.Field.raw_value, 'Yes')
+        self.assertEquals(field.Field.value, 'Yes')
+
+        field = DDBField('x', 'oracleyes_no')
+        self.assertEquals(field.Field.raw_value, 'Yes')
+        self.assertEquals(field.Field.value, 'Yes')
+
+        field = DDBField('X', 'oracleyes_no')
+        self.assertEquals(field.Field.raw_value, 'Yes')
+        self.assertEquals(field.Field.value, 'Yes')
+
+        field = DDBField('yes', 'oracleyes_no')
+        self.assertEquals(field.Field.raw_value, 'Yes')
+        self.assertEquals(field.Field.value, 'Yes')
+
+        field = DDBField(1, 'oracleyes_no')
+        self.assertEquals(field.Field.raw_value, 'Yes')
+        self.assertEquals(field.Field.value, 'Yes')
+
+        field = DDBField(0, 'oracleyes_no')
+        self.assertEquals(field.Field.raw_value, 'No')
+        self.assertEquals(field.Field.value, 'No')
+
+        field = DDBField('N', 'oracleyes_no')
+        self.assertEquals(field.Field.raw_value, 'No')
+        self.assertEquals(field.Field.value, 'No')
+
+        field = DDBField(False, 'oracleyes_no')
+        self.assertEquals(field.Field.raw_value, 'No')
+        self.assertEquals(field.Field.value, 'No')
+
+        field = DDBField(None, 'oracleyes_no')
+        self.assertEquals(field.Field.raw_value, 'No')
+        self.assertEquals(field.Field.value, 'No')
+
+
+class YesNo(FieldTestBase):
+
+    def test(self):
+
+        field = DDBField('Y', 'yes_no')
+        self.assertEquals(field.Field.raw_value, 'Yes')
+        self.assertEquals(field.Field.value, 'Yes')
+
+        field = DDBField('y', 'yes_no')
+        self.assertEquals(field.Field.raw_value, 'Yes')
+        self.assertEquals(field.Field.value, 'Yes')
+
+        field = DDBField('x', 'yes_no')
+        self.assertEquals(field.Field.raw_value, 'Yes')
+        self.assertEquals(field.Field.value, 'Yes')
+
+        field = DDBField('X', 'yes_no')
+        self.assertEquals(field.Field.raw_value, 'Yes')
+        self.assertEquals(field.Field.value, 'Yes')
+
+        field = DDBField('yes', 'yes_no')
+        self.assertEquals(field.Field.raw_value, 'Yes')
+        self.assertEquals(field.Field.value, 'Yes')
+
+        field = DDBField(1, 'yes_no')
+        self.assertEquals(field.Field.raw_value, 'Yes')
+        self.assertEquals(field.Field.value, 'Yes')
+
+        field = DDBField(0, 'yes_no')
+        self.assertEquals(field.Field.raw_value, 'No')
+        self.assertEquals(field.Field.value, 'No')
+
+        field = DDBField('N', 'yes_no')
+        self.assertEquals(field.Field.raw_value, 'No')
+        self.assertEquals(field.Field.value, 'No')
+
+        field = DDBField(False, 'yes_no')
+        self.assertEquals(field.Field.raw_value, 'No')
+        self.assertEquals(field.Field.value, 'No')
+
+        field = DDBField(None, 'yes_no')
         self.assertEquals(field.Field.raw_value, None)
         self.assertEquals(field.Field.value, 'N/A')
 
 
+class DelimitedField(FieldTestBase):
+
+    def test(self):
+        field = DDBField('foo; baz; bat;', 'delimited_field')
+        self.assertEquals(field.Field.raw_value, 'foo; baz; bat;')
+        self.assertEquals(field.Field.value, ['foo', 'baz', 'bat'])
+
+        field = DDBField('foo| baz| bat|', 'delimited_field', delimiter='|')
+        self.assertEquals(field.Field.raw_value, 'foo| baz| bat|')
+        self.assertEquals(field.Field.value, ['foo', 'baz', 'bat'])
+
+        field = DDBField(
+            'foo -- bananas; baz -- ponies; bat -- pumpkins;',
+            'delimited_field')
+        self.assertEquals(
+            field.Field.raw_value,
+            'foo -- bananas; baz -- ponies; bat -- pumpkins;'
+        )
+        self.assertEquals(
+            field.Field.value,
+            [('foo', 'bananas'), ('baz', 'ponies'), ('bat', 'pumpkins')]
+        )
+
+        field = DDBField(None, 'delimited_field', delimiter='|')
+        self.assertEquals(field.Field.raw_value, None)
+        self.assertEquals(field.Field.value, 'N/A')
+
+        field = DDBField('N/A', 'delimited_field', delimiter='|')
+        self.assertEquals(field.Field.raw_value, None)
+        self.assertEquals(field.Field.value, 'N/A')
+
+
+class DateTime(FieldTestBase):
+
+    def test(self):
+        field = DDBField('1986-09-10', 'yearless_datetime')
+        self.assertEquals(field.Field.raw_value, 'September 10')
+        self.assertEquals(field.Field.value, 'September 10')
+
+        field = DDBField('09/10', 'yearless_datetime')
+        self.assertEquals(field.Field.raw_value, 'September 10')
+        self.assertEquals(field.Field.value, 'September 10')
+
+        field = DDBField('09-10-1986', 'yearless_datetime')
+        self.assertEquals(field.Field.raw_value, 'September 10')
+        self.assertEquals(field.Field.value, 'September 10')
+
+        field = DDBField('09-10-86', 'yearless_datetime')
+        self.assertEquals(field.Field.raw_value, 'September 10')
+        self.assertEquals(field.Field.value, 'September 10')
+
+        field = DDBField('09/10/86', 'yearless_datetime')
+        self.assertEquals(field.Field.raw_value, 'September 10')
+        self.assertEquals(field.Field.value, 'September 10')
+
+        field = DDBField('09+10+1986', 'yearless_datetime')
+        self.assertEquals(field.Field.raw_value, '09+10+1986')
+        self.assertEquals(field.Field.value, '09+10+1986')
+
+        field = DDBField(None, 'yearless_datetime')
+        self.assertEquals(field.Field.raw_value, None)
+        self.assertEquals(field.Field.value, 'N/A')
+
+
+class Phone(FieldTestBase):
+
+    def test(self):
+
+        field = DDBField('8005554444', 'phone')
+        self.assertEquals(field.Field.raw_value, '(800) 555-4444')
+        self.assertEquals(field.Field.value, '(800) 555-4444')
+
+        field = DDBField('8005554444456', 'phone')
+        self.assertEquals(field.Field.raw_value, '(800) 555-4444 ext. 456')
+        self.assertEquals(field.Field.value, '(800) 555-4444 ext. 456')
+
+        field = DDBField('456', 'phone')
+        self.assertEquals(field.Field.raw_value, '456')
+        self.assertEquals(field.Field.value, '456')
+
+        field = DDBField(None, 'phone')
+        self.assertEquals(field.Field.raw_value, None)
+        self.assertEquals(field.Field.value, 'N/A')
+
+
+class Float(FieldTestBase):
+
+    def test_text_inputs(self):
+        field = DDBField('1.5', 'float', precision=1)
+        self.assertEquals(field.Field.raw_value, 1.5)
+        self.assertEquals(field.Field.value, '1.5')
+
+        field = DDBField('1.50', 'float', precision=1)
+        self.assertEquals(field.Field.raw_value, 1.5)
+        self.assertEquals(field.Field.value, '1.5')
+
+        field = DDBField('1.55', 'float', precision=1)
+        self.assertEquals(field.Field.raw_value, 1.6)
+        self.assertEquals(field.Field.value, '1.6')
+
+        field = DDBField('1.55', 'float', precision=2)
+        self.assertEquals(field.Field.raw_value, 1.55)
+        self.assertEquals(field.Field.value, '1.55')
+
+    def test_float_inputs(self):
+        field = DDBField(1.5, 'float', precision=1)
+        self.assertEquals(field.Field.raw_value, 1.5)
+        self.assertEquals(field.Field.value, '1.5')
+
+        field = DDBField(1.55, 'float', precision=1)
+        self.assertEquals(field.Field.raw_value, 1.6)
+        self.assertEquals(field.Field.value, '1.6')
+
+        field = DDBField(1.55, 'float')
+        self.assertEquals(field.Field.raw_value, 2)
+        self.assertEquals(field.Field.value, '2')
+
+
+class Int(FieldTestBase):
+
+    def test_text_inputs(self):
+        field = DDBField('1.9', 'int')
+        self.assertEquals(field.Field.raw_value, 2)
+        self.assertEquals(field.Field.value, '2')
+
+        field = DDBField('1.50', 'int')
+        self.assertEquals(field.Field.raw_value, 2)
+        self.assertEquals(field.Field.value, '2')
+
+        field = DDBField('1.55', 'int')
+        self.assertEquals(field.Field.raw_value, 2)
+        self.assertEquals(field.Field.value, '2')
+
+        field = DDBField('1.2', 'int')
+        self.assertEquals(field.Field.raw_value, 1)
+        self.assertEquals(field.Field.value, '1')
+
+        field = DDBField('1', 'int')
+        self.assertEquals(field.Field.raw_value, 1)
+        self.assertEquals(field.Field.value, '1')
+
+        field = DDBField('.5', 'int')
+        self.assertEquals(field.Field.raw_value, 1)
+        self.assertEquals(field.Field.value, '1')
+
+    def test_int_inputs(self):
+        field = DDBField(1.9, 'int')
+        self.assertEquals(field.Field.raw_value, 2)
+        self.assertEquals(field.Field.value, '2')
+
+        field = DDBField(1.50, 'int')
+        self.assertEquals(field.Field.raw_value, 2)
+        self.assertEquals(field.Field.value, '2')
+
+        field = DDBField(1.55, 'int')
+        self.assertEquals(field.Field.raw_value, 2)
+        self.assertEquals(field.Field.value, '2')
+
+        field = DDBField(1.2, 'int')
+        self.assertEquals(field.Field.raw_value, 1)
+        self.assertEquals(field.Field.value, '1')
+
+        field = DDBField(1, 'int')
+        self.assertEquals(field.Field.raw_value, 1)
+        self.assertEquals(field.Field.value, '1')
+
+        field = DDBField(.5, 'int')
+        self.assertEquals(field.Field.raw_value, 1)
+        self.assertEquals(field.Field.value, '1')
+
+    def test_comma_adds(self):
+        field = DDBField(3000, 'int')
+        self.assertEquals(field.Field.raw_value, 3000)
+        self.assertEquals(field.Field.value, '3,000')
+
+        field = DDBField('3000', 'int')
+        self.assertEquals(field.Field.raw_value, 3000)
+        self.assertEquals(field.Field.value, '3,000')
+
+
+class FloatRatio(FieldTestBase):
+
+    def test(self):
+        field = DDBField('21', 'float_ratio')
+        self.assertEquals(field.Field.value, '21:1')
+        self.assertEquals(field.Field.raw_value, 21)
+
+        field = DDBField('2,100', 'float_ratio')
+        self.assertEquals(field.Field.value, '2,100:1')
+        self.assertEquals(field.Field.raw_value, 2100)
+
+
+class USDInt(FieldTestBase):
+
+    def test(self):
+        field = DDBField('1', 'usd_int')
+        self.assertEquals(field.Field.raw_value, 1)
+        self.assertEquals(field.Field.value, '$1')
+
+        field = DDBField(1, 'usd_int')
+        self.assertEquals(field.Field.raw_value, 1)
+        self.assertEquals(field.Field.value, '$1')
+
+        field = DDBField(1000, 'usd_int')
+        self.assertEquals(field.Field.raw_value, 1000)
+        self.assertEquals(field.Field.value, '$1,000')
+
+        field = DDBField(None, 'usd_int')
+        self.assertEquals(field.Field.raw_value, None)
+        self.assertEquals(field.Field.value, 'N/A')
+
+
+class USDFloat(FieldTestBase):
+
+    def test(self):
+        field = DDBField('1', 'usd_float')
+        self.assertEquals(field.Field.raw_value, 1)
+        self.assertEquals(field.Field.value, '$1')
+
+        field = DDBField(1, 'usd_float')
+        self.assertEquals(field.Field.raw_value, 1)
+        self.assertEquals(field.Field.value, '$1')
+
+        field = DDBField(1.55, 'usd_float')
+        self.assertEquals(field.Field.raw_value, 1.55)
+        self.assertEquals(field.Field.value, '$1.55')
+
+        field = DDBField(1000, 'usd_float')
+        self.assertEquals(field.Field.raw_value, 1000)
+        self.assertEquals(field.Field.value, '$1,000')
+
+        field = DDBField(None, 'usd_float')
+        self.assertEquals(field.Field.raw_value, None)
+        self.assertEquals(field.Field.value, 'N/A')
+
+
+class StdPct(FieldTestBase):
+
+    def test(self):
+        field = DDBField('1', 'std_percentage')
+        self.assertEquals(field.Field.raw_value, 1)
+        self.assertEquals(field.Field.value, '1%')
+
+        field = DDBField(1, 'std_percentage')
+        self.assertEquals(field.Field.raw_value, 1)
+        self.assertEquals(field.Field.value, '1%')
+
+        field = DDBField(100, 'std_percentage')
+        self.assertEquals(field.Field.raw_value, 100)
+        self.assertEquals(field.Field.value, '100%')
+
+        field = DDBField(None, 'std_percentage')
+        self.assertEquals(field.Field.raw_value, None)
+        self.assertEquals(field.Field.value, 'N/A')
+
+
+class RawPct(FieldTestBase):
+
+    def test_string_inputs(self):
+        field = DDBField('1', 'raw_percentage')
+        self.assertEquals(field.Field.raw_value, 100)
+        self.assertEquals(field.Field.value, '100%')
+
+        field = DDBField('.999999', 'raw_percentage')
+        self.assertEquals(field.Field.raw_value, 100)
+        self.assertEquals(field.Field.value, '100%')
+
+        field = DDBField('.9999', 'raw_percentage', precision=2)
+        self.assertEquals(field.Field.raw_value, 99.99)
+        self.assertEquals(field.Field.value, '99.99%')
+
+    def test_number_inputs(self):
+        field = DDBField(1, 'raw_percentage')
+        self.assertEquals(field.Field.raw_value, 100)
+        self.assertEquals(field.Field.value, '100%')
+
+        field = DDBField(.999999, 'raw_percentage')
+        self.assertEquals(field.Field.raw_value, 100)
+        self.assertEquals(field.Field.value, '100%')
+
+        field = DDBField(.9999, 'raw_percentage', precision=2)
+        self.assertEquals(field.Field.raw_value, 99.99)
+        self.assertEquals(field.Field.value, '99.99%')
+
+    def test_na(self):
+        field = DDBField(None, 'raw_percentage')
+        self.assertEquals(field.Field.raw_value, None)
+        self.assertEquals(field.Field.value, 'N/A')
+
+
+class TextLine(FieldTestBase):
+
+    def test(self):
+        field = DDBField('winter is coming', 'textline')
+        self.assertEquals(field.Field.raw_value, 'Winter is coming')
+        self.assertEquals(field.Field.value, 'Winter is coming')
+
+    def test_casing(self):
+        field = DDBField('winter is coming', 'textline', case='upper')
+        self.assertEquals(field.Field.raw_value, 'WINTER IS COMING')
+        self.assertEquals(field.Field.value, 'WINTER IS COMING')
+
+        field = DDBField('winter is coming', 'textline', case='title')
+        self.assertEquals(field.Field.raw_value, 'Winter Is Coming')
+        self.assertEquals(field.Field.value, 'Winter Is Coming')
+
+    def test_na(self):
+        field = DDBField('N/A', 'textline')
+        self.assertEquals(field.Field.raw_value, None)
+        self.assertEquals(field.Field.value, 'N/A')
+
+        field = DDBField('n/a', 'textline')
+        self.assertEquals(field.Field.raw_value, None)
+        self.assertEquals(field.Field.value, 'N/A')
+
+        field = DDBField(None, 'textline')
+        self.assertEquals(field.Field.raw_value, None)
+        self.assertEquals(field.Field.value, 'N/A')
+
+        field = DDBField('N/a', 'textline')
+        self.assertEquals(field.Field.raw_value, None)
+        self.assertEquals(field.Field.value, 'N/A')

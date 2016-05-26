@@ -1,6 +1,5 @@
 import datetime
 import re
-from collections import OrderedDict
 from copy import deepcopy
 
 
@@ -19,8 +18,9 @@ class Field(object):
                  vocabulary={}):
         self.value = raw_value
         self.raw_value = None
+        self.original_value = raw_value
         self.vocabulary = {}
-        self.precision=precision
+        self.precision = precision
         self.sort_as = "Text"
         self.case = case
         self.delimiter = delimiter
@@ -31,7 +31,6 @@ class Field(object):
         #     self.vocabulary = vocabulary[self.field_metadata['displayName']]
         # if self.value in self.vocabulary:
         #     self.value = self.vocabulary[self.value]
-
 
     @classmethod
     def convert(self):
@@ -69,11 +68,9 @@ class Field(object):
         rounded_decimal = ('').join(rounded_decimal)
         return float('%s.%s' % (whole, rounded_decimal))
 
-
-
     @classmethod
     def _parse_number(self, value, precision=0, comma=True):
-        precision = precision or 0
+        self.precision = self.precision or 0
         if value and str(value).lower() not in ['none', 'n/a']:
             strval = str(value).replace(',', '')
             try:
@@ -116,7 +113,7 @@ class Int(Field):
     def convert(self):
         self.sort_as = "Integer"
         if not self.value:
-            self.value =  'N/A'
+            self.value = 'N/A'
             return
         self.precision = 0
         if self.value:
@@ -232,6 +229,7 @@ class RawPercentage(Field):
 
 
 class TextLine(Field):
+
     @classmethod
     def convert(self):
         char_map = {
@@ -271,11 +269,14 @@ class YesNo(Field):
     '''
     @classmethod
     def convert(self):
-        if self.value is not None:
-            if str(self.value).lower() in ('x', 'yes', 'y', 'Y', '1'):
+        if self.value:
+            if self.value is True or\
+                    str(self.value).lower() in ('x', 'yes', 'y', 'Y', '1'):
                 self.value = 'Yes'
             else:
                 self.value = 'No'
+        elif self.value is False:
+            self.value = 'No'
         else:
             self.value = 'N/A'
 
@@ -306,6 +307,7 @@ class OracleYesNo(Field):
 
 
 class YearlessDatetime(Field):
+
     @classmethod
     def convert(self):
         if self.value:
@@ -355,23 +357,14 @@ class Phone(Field):
     @classmethod
     def set_raw(self):
         if self.value and self.value != 'N/A':
-            self.raw_value = self.value
-
-
-class RankingInt(Field):
-
-    @classmethod
-    def convert(self):
-        self.sort_as = "Integer"
-        if self.value:
-            self.value = '%s' % self.value
-        else:
-            self.value = ''
+            self.raw_value = str(self.value)
 
 
 class DelimitedField(Field):
     @classmethod
     def convert(self):
+        if self.value == 'N/A':
+            return
         if self.value:
             if ' -- ' in self.value:
                 parts = self.value.split(self.delimiter)
@@ -391,7 +384,9 @@ class DelimitedField(Field):
     @classmethod
     def set_raw(self):
         if self.value and self.value != 'N/A':
-            self.raw_value = self.value
+            self.raw_value = self.original_value
+        else:
+            self.raw_value = None
 
 
 class DDBField(object):
@@ -412,8 +407,6 @@ class DDBField(object):
             'oracleyes_no': OracleYesNo,
             'yearless_datetime': YearlessDatetime,
             'phone': Phone,
-            'ranking_int': RankingInt,
-            'ranking_string': RankingInt,
             'int': Int,
             'delimited_field': DelimitedField,
         }
