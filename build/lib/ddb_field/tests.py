@@ -1,4 +1,5 @@
 import unittest
+import coverage
 from .ddb_field import DDBField
 
 
@@ -452,5 +453,13 @@ class RawValuesTests(FieldTestBase):
         field = DDBField('1', 'raw_percentage')
         self.assertEquals(field.Field.raw_value, 100)
         self.assertEquals(field.Field.value, '100%')
+
+        field = DDBField('winter is coming', 'textline')
+        self.assertEquals(field.Field.raw_value, 'Winter is coming')
+        self.assertEquals(field.Field.value, 'Winter is coming')
+
+        field = DDBField('N/A', 'textline')
+        self.assertEquals(field.Field.raw_value, None)
+        self.assertEquals(field.Field.value, 'N/A')
 
 

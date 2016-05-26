@@ -239,6 +239,10 @@ class TextLine(Field):
             u"\u201c": "\"",
             u"\u201d": "\"",
         }
+        if self.value and self.value == 'N/A':
+            self.value = self.value
+            self.raw_value = None
+            return
         if self.value:
             self.value = str(self.value)
             for bad_char, good_char in char_map.items():
