@@ -402,6 +402,7 @@ class NumericTypeTests(FieldTestBase):
             'N/A': [
                 ({'rawValue': 0}, {'precision': 0}),
                 ({'rawValue': '0'}, {'precision': 2}),
+                ({'rawValue': '0'}, {'precision': None}),
             ],
 
         }

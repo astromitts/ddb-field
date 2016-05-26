@@ -73,6 +73,7 @@ class Field(object):
 
     @classmethod
     def _parse_number(self, value, precision=0, comma=True):
+        precision = precision or 0
         if value and str(value).lower() not in ['none', 'n/a']:
             strval = str(value).replace(',', '')
             try:
