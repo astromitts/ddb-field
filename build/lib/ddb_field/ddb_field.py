@@ -239,8 +239,8 @@ class TextLine(Field):
             u"\u201c": "\"",
             u"\u201d": "\"",
         }
-        if self.value and self.value == 'N/A':
-            self.value = self.value
+        if self.value and str(self.value).upper() == 'N/A':
+            self.value = 'N/A'
             self.raw_value = None
             return
         if self.value:

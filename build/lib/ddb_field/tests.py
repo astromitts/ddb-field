@@ -117,6 +117,9 @@ class TextTypeTests(FieldTestBase):
             ],
             'N/A': [
                 ({'rawValue': None}, {}),
+                ({'rawValue':'N/A'}, {}),
+                ({'rawValue':'N/a'}, {}),
+                ({'rawValue':'n/a'}, {}),
             ],
 
         }
