@@ -2,11 +2,11 @@ from setuptools import setup, find_packages
 
 config = {
     'description': 'DDB Fields',
-    'author': 'US News',
+    'author': 'Bethany Morin, U.S. News & World Report',
     'url': '',
     'download_url': '',
-    'author_email': '',
-    'version': '0.0.1',
+    'author_email': 'bmorin@usnews.com',
+    'version': '1.0.0',
     'setup_requires': [
         'nose',
     ],
