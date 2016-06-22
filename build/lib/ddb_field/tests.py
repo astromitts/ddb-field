@@ -86,8 +86,8 @@ class YesNo(FieldTestBase):
         self.assertEquals(field.Field.value, 'Yes')
 
         field = DDBField(0, 'yes_no')
-        self.assertEquals(field.Field.raw_value, 'No')
-        self.assertEquals(field.Field.value, 'No')
+        self.assertEquals(field.Field.raw_value, None)
+        self.assertEquals(field.Field.value, 'N/A')
 
         field = DDBField('N', 'yes_no')
         self.assertEquals(field.Field.raw_value, 'No')
