@@ -56,7 +56,8 @@ class Field(object):
         cutoff_num = int_vals[self.precision - 1]
         if test_num >= 5:
             int_vals[self.precision - 1] = int_vals[self.precision - 1] + 1
-        if self.precision == 0 and int(int_vals[0]) >= 5:
+        if ((self.precision == 0 and int(int_vals[0]) >= 5) or
+                int_vals[self.precision - 1] == 10):
             whole = int(whole or 0) + 1
             return whole
         ind = 0
