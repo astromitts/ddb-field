@@ -54,7 +54,7 @@ class Field(object):
         int_vals = [int(i) for i in vallist]
         test_num = int_vals[self.precision]
         cutoff_num = int_vals[self.precision - 1]
-        if test_num > cutoff_num or test_num == 5:
+        if test_num >= 5:
             int_vals[self.precision - 1] = int_vals[self.precision - 1] + 1
         if self.precision == 0 and int(int_vals[0]) >= 5:
             whole = int(whole or 0) + 1

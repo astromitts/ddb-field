@@ -219,6 +219,10 @@ class Float(FieldTestBase):
         self.assertEquals(field.Field.raw_value, 2)
         self.assertEquals(field.Field.value, '2')
 
+        field = DDBField(1.345557578, 'float', precision=1)
+        self.assertEquals(field.Field.raw_value, 1.3)
+        self.assertEquals(field.Field.value, '1.3')
+
 
 class Int(FieldTestBase):
 
