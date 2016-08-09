@@ -206,6 +206,14 @@ class Float(FieldTestBase):
         self.assertEquals(field.Field.raw_value, 1.55)
         self.assertEquals(field.Field.value, '1.55')
 
+        field = DDBField(
+            '1.34874759152215799614643545279383429672',
+            'float',
+            precision=1
+        )
+        self.assertEquals(field.Field.raw_value, 1.3)
+        self.assertEquals(field.Field.value, '1.3')
+
     def test_float_inputs(self):
         field = DDBField(1.5, 'float', precision=1)
         self.assertEquals(field.Field.raw_value, 1.5)
@@ -219,7 +227,11 @@ class Float(FieldTestBase):
         self.assertEquals(field.Field.raw_value, 2)
         self.assertEquals(field.Field.value, '2')
 
-        field = DDBField(1.345557578, 'float', precision=1)
+        field = DDBField(
+            1.34874759152215799614643545279383429672,
+            'float',
+            precision=1
+        )
         self.assertEquals(field.Field.raw_value, 1.3)
         self.assertEquals(field.Field.value, '1.3')
 
