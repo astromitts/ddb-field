@@ -6,7 +6,7 @@ config = {
     'url': '',
     'download_url': '',
     'author_email': 'bmorin@usnews.com',
-    'version': '1.0.0',
+    'version': '1.0.2',
     'setup_requires': [
         'nose',
     ],
